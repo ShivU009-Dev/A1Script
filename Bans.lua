@@ -1,109 +1,81 @@
--- 🔒 SETTINGS
-local ADMIN_USER_ID = 8791237630 -- <<== Replace with YOUR UserId
-
--- SERVICES
 local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
 
--- 🔒 Ban List (memory-based)
-local BanList = {}
+-- Your UserId only
+if LocalPlayer.UserId ~= 8791237630 then return end
 
--- 🔁 Auto-kick banned players
-Players.PlayerAdded:Connect(function(player)
-	if BanList[player.UserId] then
-		player:Kick("You are banned from this game.")
-	end
-end)
+-- RemoteEvents
+local BanRemote = ReplicatedStorage:WaitForChild("BanMisuser")
+local KickRemote = ReplicatedStorage:WaitForChild("AdminKick")
+local KillRemote = ReplicatedStorage:WaitForChild("AdminKill")
 
--- 🧠 Function to create the admin UI for the admin player
-local function createAdminMenu(admin)
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "AdminMenu"
-	gui.ResetOnSpawn = false
+-- Create GUI
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "AdminControlMenu"
+gui.ResetOnSpawn = false
 
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 300, 0, 400)
-	frame.Position = UDim2.new(0, 20, 0, 100)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	frame.Parent = gui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 400)
+frame.Position = UDim2.new(0, 10, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
-	local list = Instance.new("UIListLayout", frame)
-	list.Padding = UDim.new(0, 5)
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0, 5)
 
-	-- Creates row for each player
-	local function addPlayerRow(target)
-		if target == admin then return end
+-- Create button row for each player
+local function createPlayerRow(targetPlayer)
+	if targetPlayer == LocalPlayer then return end
 
-		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 40)
-		row.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		row.Parent = frame
+	local row = Instance.new("Frame", frame)
+	row.Size = UDim2.new(1, 0, 0, 40)
+	row.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Text = target.Name
-		nameLabel.Size = UDim2.new(0.4, 0, 1, 0)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.TextColor3 = Color3.new(1, 1, 1)
-		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-		nameLabel.Parent = row
+	local nameLabel = Instance.new("TextLabel", row)
+	nameLabel.Text = targetPlayer.Name
+	nameLabel.Size = UDim2.new(0.4, 0, 1, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3 = Color3.new(1, 1, 1)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-		local killBtn = Instance.new("TextButton")
-		killBtn.Size = UDim2.new(0.2, 0, 1, 0)
-		killBtn.Position = UDim2.new(0.4, 0, 0, 0)
-		killBtn.Text = "Kill"
-		killBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-		killBtn.TextColor3 = Color3.new(1, 1, 1)
-		killBtn.Parent = row
-		killBtn.MouseButton1Click:Connect(function()
-			if target.Character and target.Character:FindFirstChild("Humanoid") then
-				target.Character.Humanoid.Health = 0
-			end
-		end)
-
-		local kickBtn = Instance.new("TextButton")
-		kickBtn.Size = UDim2.new(0.2, 0, 1, 0)
-		kickBtn.Position = UDim2.new(0.6, 0, 0, 0)
-		kickBtn.Text = "Kick"
-		kickBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
-		kickBtn.TextColor3 = Color3.new(1, 1, 1)
-		kickBtn.Parent = row
-		kickBtn.MouseButton1Click:Connect(function()
-			target:Kick("You have been kicked by the admin.")
-		end)
-
-		local banBtn = Instance.new("TextButton")
-		banBtn.Size = UDim2.new(0.2, 0, 1, 0)
-		banBtn.Position = UDim2.new(0.8, 0, 0, 0)
-		banBtn.Text = "Ban"
-		banBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-		banBtn.TextColor3 = Color3.new(1, 1, 1)
-		banBtn.Parent = row
-		banBtn.MouseButton1Click:Connect(function()
-			BanList[target.UserId] = true
-			target:Kick("You have been banned by the admin.")
-		end)
-	end
-
-	-- Add all players
-	for _, p in ipairs(Players:GetPlayers()) do
-		addPlayerRow(p)
-	end
-
-	-- Add new player rows when players join
-	Players.PlayerAdded:Connect(function(p)
-		wait(1)
-		if admin and admin.Parent then
-			addPlayerRow(p)
-		end
+	local killBtn = Instance.new("TextButton", row)
+	killBtn.Size = UDim2.new(0.2, 0, 1, 0)
+	killBtn.Position = UDim2.new(0.4, 0, 0, 0)
+	killBtn.Text = "Kill"
+	killBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+	killBtn.TextColor3 = Color3.new(1, 1, 1)
+	killBtn.MouseButton1Click:Connect(function()
+		KillRemote:FireServer(targetPlayer.Name)
 	end)
 
-	gui.Parent = admin:WaitForChild("PlayerGui")
+	local kickBtn = Instance.new("TextButton", row)
+	kickBtn.Size = UDim2.new(0.2, 0, 1, 0)
+	kickBtn.Position = UDim2.new(0.6, 0, 0, 0)
+	kickBtn.Text = "Kick"
+	kickBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+	kickBtn.TextColor3 = Color3.new(1, 1, 1)
+	kickBtn.MouseButton1Click:Connect(function()
+		KickRemote:FireServer(targetPlayer.Name)
+	end)
+
+	local banBtn = Instance.new("TextButton", row)
+	banBtn.Size = UDim2.new(0.2, 0, 1, 0)
+	banBtn.Position = UDim2.new(0.8, 0, 0, 0)
+	banBtn.Text = "Ban"
+	banBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	banBtn.TextColor3 = Color3.new(1, 1, 1)
+	banBtn.MouseButton1Click:Connect(function()
+		BanRemote:FireServer("manual", targetPlayer.UserId)
+	end)
 end
 
--- 🧠 When admin joins, give them the menu
-Players.PlayerAdded:Connect(function(player)
-	if player.UserId == ADMIN_USER_ID then
-		wait(1)
-		createAdminMenu(player)
-	end
+-- Create UI for all players
+for _, p in ipairs(Players:GetPlayers()) do
+	createPlayerRow(p)
+end
+
+-- Add new players when they join
+Players.PlayerAdded:Connect(function(p)
+	task.wait(1)
+	createPlayerRow(p)
 end)
